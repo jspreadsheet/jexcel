@@ -5380,8 +5380,24 @@ var jexcel = (function(el, options) {
      * @param integer row number
      * @return string value
      */
-    obj.paste = function(x, y, data) {
+    obj.paste = function(selectedCell, data) {
         // Paste filter
+        var x = selectedCell[0],
+            y = selectedCell[1],
+            w = selectedCell[2]-x+1,
+            h = selectedCell[3]-y+1;
+
+        // change paste range if select is from right to left
+        if (selectedCell[2]<selectedCell[0]){
+            x = selectedCell[2];
+            w = selectedCell[0]-x+1;
+        }
+        // change paste range if select is from down to up
+        if (selectedCell[3]<selectedCell[1]){
+            y = selectedCell[3];
+            h = selectedCell[1]-y+1;
+        }
+        // console.log(x, y, data);
         if (typeof(obj.options.onbeforepaste) == 'function') {
             var data = obj.options.onbeforepaste(el, data);
         }
@@ -5397,6 +5413,27 @@ var jexcel = (function(el, options) {
 
         // Split new line
         var data = obj.parseCSV(data, "\t");
+
+        //modify data to allow wor extending paste range in multiples of input range
+        if (w>1 & Number.isInteger(w/data[0].length )){
+            style = null;
+            repeats = w/data[0].length;
+
+            var arrayB = data.map(function(row,i){
+                var arrayC = Array.apply(null, {length: repeats * row.length})
+                            .map(function(e,i){return row[i % row.length]});                
+                return arrayC
+            });
+            data = arrayB;
+
+        }
+        if (h>1 & Number.isInteger(h/data.length )){
+            style = null;
+            var repeats = h/data.length;
+            var arrayB = Array.apply(null, {length: repeats * data.length})
+                .map(function(e,i){return data[i % data.length]});
+            data = arrayB;
+        }
 
         if (x != null && y != null && data) {
             // Records
@@ -5473,7 +5510,7 @@ var jexcel = (function(el, options) {
             // On after changes
             obj.onafterchanges(el, records);
         }
-    }
+    }  
 
     /**
      * Process row
@@ -6064,7 +6101,7 @@ var jexcel = (function(el, options) {
                         if (obj.selectedCell) {
                             navigator.clipboard.readText().then(function(text) {
                                 if (text) {
-                                    jexcel.current.paste(obj.selectedCell[0], obj.selectedCell[1], text);
+                                    jexcel.current.paste(obj.selectedCell, text);
                                 }
                             });
                         }
@@ -6361,6 +6398,10 @@ jexcel.keyDownControls = function(e) {
                 e.preventDefault();
             } else if (e.which == 38) {
                 jexcel.current.up(e.shiftKey, e.ctrlKey);
+                e.preventDefault();
+            } else if (e.altKey && e.which == 40) {
+                var e2 = {target : jexcel.current.getCellFromCoords(jexcel.current.selectedCell[0],jexcel.current.selectedCell[1])}
+                jexcel.doubleClickControls(e2)
                 e.preventDefault();
             } else if (e.which == 40) {
                 jexcel.current.down(e.shiftKey, e.ctrlKey);
@@ -7113,10 +7154,10 @@ jexcel.pasteControls = function(e) {
         if (! jexcel.current.edition) {
             if (jexcel.current.options.editable == true) {
                 if (e && e.clipboardData) {
-                    jexcel.current.paste(jexcel.current.selectedCell[0], jexcel.current.selectedCell[1], e.clipboardData.getData('text'));
+                    jexcel.current.paste(jexcel.current.selectedCell, e.clipboardData.getData('text'));
                     e.preventDefault();
                 } else if (window.clipboardData) {
-                    jexcel.current.paste(jexcel.current.selectedCell[0], jexcel.current.selectedCell[1], window.clipboardData.getData('text'));
+                    jexcel.current.paste(jexcel.current.selectedCell, e.clipboardData.getData('text'));
                 }
             }
         }
