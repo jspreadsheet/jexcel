@@ -6453,6 +6453,10 @@ jexcel.keyDownControls = function(e) {
 
 jexcel.isMouseAction = false;
 
+jexcel.isRtl = function(){
+    return document.body.classList.contains('dirRtl');
+}
+
 jexcel.mouseDownControls = function(e) {
     e = e || window.event;
     if (e.buttons) {
@@ -6496,7 +6500,7 @@ jexcel.mouseDownControls = function(e) {
                 if (columnId) {
                     // Update cursor
                     var info = e.target.getBoundingClientRect();
-                    if (jexcel.current.options.columnResize == true && info.width - e.offsetX < 6) {
+                    if (jexcel.current.options.columnResize == true && (!jexcel.isRtl() && info.width - e.offsetX < 6 || jexcel.isRtl() && e.offsetX < 6)) {
                         // Resize helper
                         jexcel.current.resizing = {
                             mousePosition: e.pageX,
@@ -6797,8 +6801,8 @@ jexcel.mouseMoveControls = function(e) {
                 if (jexcel.current.resizing.column) {
                     var width = e.pageX - jexcel.current.resizing.mousePosition;
 
-                    if (jexcel.current.resizing.width + width > 0) {
-                        var tempWidth = jexcel.current.resizing.width + width;
+                    if (jexcel.current.resizing.width + width * (jexcel.isRtl()? -1 : 1) > 0) {
+                        var tempWidth = jexcel.current.resizing.width + width * (jexcel.isRtl()? -1 : 1);
                         jexcel.current.colgroup[jexcel.current.resizing.column].setAttribute('width', tempWidth);
 
                         jexcel.current.updateCornerPosition();
@@ -6826,7 +6830,7 @@ jexcel.mouseMoveControls = function(e) {
 
             if (e.target.parentNode.parentNode && e.target.parentNode.parentNode.className) {
                 if (e.target.parentNode.parentNode.classList.contains('resizable')) {
-                    if (e.target && x && ! y && (rect.width - (e.clientX - rect.left) < 6)) {
+                    if (e.target && x && ! y && (!jexcel.isRtl() && (rect.width - (e.clientX - rect.left) < 6) || jexcel.isRtl() && (e.clientX - rect.left < 6))) {
                         jexcel.current.cursor = e.target;
                         jexcel.current.cursor.style.cursor = 'col-resize';
                     } else if (e.target && ! x && y && (rect.height - (e.clientY - rect.top) < 6)) {
